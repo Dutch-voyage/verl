@@ -19,16 +19,12 @@ from verl.utils.import_utils import (
 )
 
 from .base import BaseShardingManager
-from .fsdp.fsdp_ulysses import FSDPUlyssesShardingManager
+from .fsdp_ulysses import FSDPUlyssesShardingManager
 
 AllGatherPPModel = None
 
 if is_megatron_core_available() and is_vllm_available():
-    from .megatron.megatron_ppmodel import AllGatherPPModel
-    from .megatron.megatron_vllm import MegatronVLLMShardingManager
-elif is_megatron_core_available() and is_sglang_available():
-    from .megatron.megatron_ppmodel import AllGatherPPModel
-    from .megatron.megatron_sglang import MegatronSGLangShardingManager
+    from .megatron_vllm import AllGatherPPModel, MegatronVLLMShardingManager
 elif AllGatherPPModel is not None:
     pass
 else:
@@ -36,13 +32,13 @@ else:
     MegatronVLLMShardingManager = None
 
 if is_vllm_available():
-    from .fsdp.fsdp_vllm import FSDPVLLMShardingManager
+    from .fsdp_vllm import FSDPVLLMShardingManager
 else:
     FSDPVLLMShardingManager = None
 
 # NOTE(linjunrong): Due to recent fp8 support in SGLang. Now importing any symbol relate to SGLang's model_runner would check CUDA device capability.
-# However, due to veRL's setting, the main process of ray can not find any CUDA device, which would potentially lead to: 
-# "RuntimeError: No CUDA GPUs are available". 
+# However, due to veRL's setting, the main process of ray can not find any CUDA device, which would potentially lead to:
+# "RuntimeError: No CUDA GPUs are available".
 # For this reason, sharding_manager.__init__ should not import SGLangShardingManager and user need to import use the abs path.
 # check: https://github.com/sgl-project/sglang/blob/00f42707eaddfc2c0528e5b1e0094025c640b7a0/python/sglang/srt/layers/quantization/fp8_utils.py#L76
 # if is_sglang_available():
