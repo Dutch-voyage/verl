@@ -58,7 +58,6 @@ elif vs.parse(package_version) >= vs.parse('0.7.0'):
 
     from vllm import LLM
     from vllm.distributed import parallel_state
-    from .vllm_spmd.dtensor_weight_loaders import load_dtensor_weights
 elif package_version is not None:
     # workaround vllm version check
     pass
