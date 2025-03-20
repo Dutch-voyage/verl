@@ -102,7 +102,6 @@ def clip_by_value(x, tensor_min, tensor_max):
     clipped = torch.max(torch.min(x, tensor_max), tensor_min)
     return clipped
 
-
 def entropy_from_logits(logits: torch.Tensor):
     """Calculate entropy from logits."""
     pd = torch.nn.functional.softmax(logits, dim=-1)

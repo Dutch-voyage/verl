@@ -151,6 +151,7 @@ class SGLangRollout(BaseRollout):
             device_mesh_cpu=device_mesh_cpu["tp"],
             base_gpu_id=src_rank,
             gpu_id_step=1,
+            enable_memory_saver=True,
             # NOTE(Chenyang): if you want to debug the sglang engine
             # please set the following parameters
             # Otherwise, it will make the engine run too slow
@@ -164,10 +165,8 @@ class SGLangRollout(BaseRollout):
         self.inference_engine.release_memory_occupation()
 
         kwargs = dict(n=1,
-                      max_new_tokens=config.response_length,
-                      presence_penalty=0.0,
-                      frequency_penalty=0.0,
-                      repetition_penalty=1.0)
+                      max_new_tokens=config.response_length)
+        
         # supporting adding any sampling params from the config file
         for k in config.keys():
             if hasattr(SamplingParams(), str(k)):
@@ -230,8 +229,8 @@ class SGLangRollout(BaseRollout):
                 top_p=1,
                 top_k=-1,
                 ignore_eos=False,
-                min_new_tokens=0,
-                max_new_tokens=4096,
+                # min_new_tokens=0,
+                # max_new_tokens=4096,
                 skip_special_tokens=True,
                 spaces_between_special_tokens=True,
             )

@@ -290,6 +290,8 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(sequence_score).detach().item(),
         'critic/score/min':
             torch.min(sequence_score).detach().item(),
+        'critic/score/std':
+            torch.std(sequence_score).detach().item(),
         # reward
         'critic/rewards/mean':
             torch.mean(sequence_reward).detach().item(),
@@ -297,6 +299,8 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(sequence_reward).detach().item(),
         'critic/rewards/min':
             torch.min(sequence_reward).detach().item(),
+        'critic/rewards/std':
+            torch.std(sequence_reward).detach().item(),
         # adv
         'critic/advantages/mean':
             torch.mean(valid_adv).detach().item(),
@@ -304,6 +308,8 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(valid_adv).detach().item(),
         'critic/advantages/min':
             torch.min(valid_adv).detach().item(),
+        'critic/advantages/std':
+            torch.std(valid_adv).detach().item(),
         # returns
         'critic/returns/mean':
             torch.mean(valid_returns).detach().item(),
@@ -311,11 +317,14 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(valid_returns).detach().item(),
         'critic/returns/min':
             torch.min(valid_returns).detach().item(),
+        'critic/returns/std':
+            torch.std(valid_returns).detach().item(),
         **({
             # values
             'critic/values/mean': torch.mean(valid_values).detach().item(),
             'critic/values/max': torch.max(valid_values).detach().item(),
             'critic/values/min': torch.min(valid_values).detach().item(),
+            'critic/values/std': torch.std(valid_values).detach().item(),
             # vf explained var
             'critic/vf_explained_var': (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),
         } if use_critic else {}),
@@ -327,6 +336,8 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(response_length).detach().item(),
         'response_length/min':
             torch.min(response_length).detach().item(),
+        'response_length/std':
+            torch.std(response_length).detach().item(),
         'response_length/clip_ratio':
             torch.mean(torch.eq(response_length, max_response_length).float()).detach().item(),
         # prompt length
@@ -336,10 +347,31 @@ def compute_data_metrics(batch, use_critic=True):
             torch.max(prompt_length).detach().item(),
         'prompt_length/min':
             torch.min(prompt_length).detach().item(),
+        'prompt_length/std':
+            torch.std(prompt_length).detach().item(),
         'prompt_length/clip_ratio':
             torch.mean(torch.eq(prompt_length, max_prompt_length).float()).detach().item(),
     }
     return metrics
+
+def compute_reward_metrics(batch):
+    reward_tensor = batch.batch['token_level_scores'].sum(-1)
+
+    reward_metrics = {}
+    reward_metrics["reward/mean"] = torch.mean(reward_tensor).detach().item()
+    reward_metrics["reward/std"] = torch.std(reward_tensor).detach().item()
+    # Calculate all_correct ratio (value == 3)
+    all_correct = torch.sum(reward_tensor == 3).float() / reward_tensor.numel()
+    reward_metrics["reward/all_correct_ratio"] = all_correct.detach().item()
+    # Calculate format_error ratio (value == -1)
+    format_error = torch.sum(reward_tensor == -1).float() / reward_tensor.numel()
+    reward_metrics["reward/format_error_ratio"] = format_error.detach().item()
+    # Calculate wrong answer ratio (value == -1)
+    # wrong_answer = torch.sum((reward_tensor < 4) & (reward_tensor > -1)).float() / reward_tensor.numel()
+    # reward_metrics["reward/wrong_answer_ratio"] = wrong_answer.detach().item()
+    wrong_answer = torch.sum(reward_tensor == -0.5).float() / reward_tensor.numel()
+    reward_metrics["reward/wrong_answer_ratio"] = wrong_answer.detach().item()
+    return reward_metrics
 
 
 def compute_timing_metrics(batch, timing_raw):
@@ -710,7 +742,13 @@ class RayPPOTrainer(object):
 
         metric_dict = {}
         for data_source, rewards in data_source_reward.items():
-            metric_dict[f'val/test_score/{data_source}'] = np.mean(rewards)
+            metric_dict[f'val/test_reward/{data_source}'] = np.mean(rewards)
+
+        # kk evaluation
+        for data_source, rewards in data_source_reward.items():
+            count_equal_3 = sum(1 for reward in rewards if reward == 3)
+            total_count = len(rewards)
+            metric_dict[f'val/test_score/{data_source}'] = count_equal_3 / total_count if total_count > 0 else 0
 
         return metric_dict
 
@@ -1034,6 +1072,10 @@ class RayPPOTrainer(object):
                         actor_output_metrics = reduce_metrics(actor_output.meta_info['metrics'])
                         metrics.update(actor_output_metrics)
 
+                    # reward
+                    reward_metrics = compute_reward_metrics(batch)
+                    metrics.update(reward_metrics)
+                    
                     # validate
                     if self.val_reward_fn is not None and self.config.trainer.test_freq > 0 and \
                         (is_last_step or  self.global_steps % self.config.trainer.test_freq == 0):
