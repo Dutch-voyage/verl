@@ -51,8 +51,11 @@ def get_custom_reward_fn(config):
 
 @hydra.main(config_path='config', config_name='ppo_trainer', version_base=None)
 def main(config):
-    # TODO(linjunrong.ocss884): this ENV is left for resolving SGLang conflict with ray devices
-    # isolation, will solve in the future
+    run_ppo(config)
+
+
+def run_ppo(config) -> None:
+
     os.environ["ENSURE_CUDA_VISIBLE_DEVICES"] = os.environ.get('CUDA_VISIBLE_DEVICES', '')
     if not ray.is_initialized():
         # this is for local ray cluster
@@ -144,6 +147,9 @@ class TaskRunner:
         elif reward_manager_name == 'prime':
             from verl.workers.reward_manager import PrimeRewardManager
             reward_manager_cls = PrimeRewardManager
+        elif reward_manager_name == 'kk':
+            from verl.workers.reward_manager import KKRewardManager
+            reward_manager_cls = KKRewardManager
         else:
             raise NotImplementedError
 
