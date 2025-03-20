@@ -165,8 +165,10 @@ class RLHFDataset(Dataset):
         # prompt_with_chat_template = chat[0]['content']
 
         # remove last <|im_end|>\n for Qwen 
-        prompt_with_chat_template = prompt_with_chat_template.removesuffix('<|im_end|>\n')
-        # prompt_with_chat_template = prompt_with_chat_template.removesuffix('<｜end▁of▁sentence｜>')
+        if prompt_with_chat_template.endswith('<|im_end|>\n'):
+            prompt_with_chat_template = prompt_with_chat_template.removesuffix('<|im_end|>\n')
+        elif prompt_with_chat_template.endswith('<｜end▁of▁sentence｜>'):
+            prompt_with_chat_template = prompt_with_chat_template.removesuffix('<｜end▁of▁sentence｜>')
 
         is_multi_modal = self.image_key in row_dict
         if is_multi_modal:  # expand image token

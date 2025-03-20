@@ -151,7 +151,7 @@ class DataParallelPPOActor(BasePPOActor):
                 # entropy[~lowest_entropy_mask] = 0.0
                 
                 log_probs = full_log_probs.squeeze(-1)[:, -response_length - 1:-1]  # (bsz, response_length)
-                # entropy = torch.zeros_like(log_probs).detach()s
+                entropy = torch.zeros_like(log_probs).detach()
 
             else:  # not using rmpad and no ulysses sp
                 output = self.actor_module(input_ids=input_ids,
@@ -175,7 +175,7 @@ class DataParallelPPOActor(BasePPOActor):
                 # # set entropy to 0 for the lowest 20% of entropy
                 # entropy[~lowest_entropy_mask] = 0.0
 
-                # entropy = torch.zeros_like(log_probs).detach()
+                entropy = torch.zeros_like(log_probs).detach()
 
             return entropy, log_probs
 
@@ -209,7 +209,6 @@ class DataParallelPPOActor(BasePPOActor):
         """
         # set to eval
         self.actor_module.eval()
-
         micro_batch_size = data.meta_info['micro_batch_size']
         temperature = data.meta_info['temperature']  # temperature must be in the data.meta_info to avoid slient error
         use_dynamic_bsz = data.meta_info['use_dynamic_bsz']

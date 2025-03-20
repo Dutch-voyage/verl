@@ -49,7 +49,10 @@ class CCE_DP_PPOActor(BasePPOActor):
         super().__init__(config)
         self.actor_module = actor_module
         from cut_cross_entropy.transformers import cce_patch
-        self.actor_module._fsdp_wrapped_module = cce_patch(self.actor_module._fsdp_wrapped_module, reduction="none")
+        if isinstance(self.actor_module, FSDP):
+            self.actor_module._fsdp_wrapped_module = cce_patch(self.actor_module._fsdp_wrapped_module, reduction="none")
+        else:
+            self.actor_module = cce_patch(self.actor_module, reduction="none")
         self.actor_optimizer = actor_optimizer
         self.use_remove_padding = self.config.get('use_remove_padding', False)
         print(f'Actor use_remove_padding={self.use_remove_padding}')
@@ -162,7 +165,7 @@ class CCE_DP_PPOActor(BasePPOActor):
                 # entropy_rmpad = torch.zeros_like(nll)
                 
                 # if use_sp: ((total_nnz / sp) + pad) ; if not use_sp: (batch, seqlen)
-                log_probs = nll
+                log_probs = -nll
 
                 indices = indices[1:]
 
@@ -200,7 +203,7 @@ class CCE_DP_PPOActor(BasePPOActor):
                 nll = outputs.loss
                 nll = nll[:, -response_length - 1:-1] 
                 entropy = torch.zeros_like(nll)
-                log_probs = nll
+                log_probs = -nll
 
             return entropy, log_probs
 
