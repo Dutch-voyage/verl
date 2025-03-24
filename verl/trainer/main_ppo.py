@@ -152,6 +152,19 @@ class TaskRunner:
             reward_manager_cls = KKRewardManager
         else:
             raise NotImplementedError
+        
+        class KnightKnaveAnswer(BaseModel):
+            """Schema for knight/knave puzzle answers."""
+            think: Dict[str, str] = Field(
+                description="Reasoning steps for solving the puzzle",
+                examples=[{"step1": "First, let's analyze...", "step2": "Next, we can deduce..."}]
+            )
+            answer: Dict[str, Literal["knight", "knave"]] = Field(
+                description="Mapping of character IDs to their classification as knight or knave",
+                examples=[{"A": "knight", "B": "knave", "C": "knight"}]
+            )
+        
+        json_schema = json.dumps(KnightKnaveAnswer.model_json_schema())
 
         compute_score = get_custom_reward_fn(config)
         reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)
@@ -168,7 +181,8 @@ class TaskRunner:
                                 resource_pool_manager=resource_pool_manager,
                                 ray_worker_group_cls=ray_worker_group_cls,
                                 reward_fn=reward_fn,
-                                val_reward_fn=val_reward_fn)
+                                val_reward_fn=val_reward_fn, 
+                                json_schema=json_schema)
         trainer.init_workers()
         trainer.fit()
 

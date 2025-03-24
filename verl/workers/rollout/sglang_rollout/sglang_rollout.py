@@ -168,6 +168,7 @@ class SGLangRollout(BaseRollout):
                       max_new_tokens=config.response_length)
         
         # supporting adding any sampling params from the config file
+        
         for k in config.keys():
             if hasattr(SamplingParams(), str(k)):
                 kwargs[k] = config.get(k)
@@ -187,6 +188,8 @@ class SGLangRollout(BaseRollout):
                     old_value = self.sampling_params[key]
                     old_sampling_params_args[key] = old_value
                     self.sampling_params[key] = value
+                else:
+                    raise ValueError(f"Sampling param {key} not found in {self.sampling_params}")
         yield
         # roll back to previous sampling params
         # if len(old_sampling_params_args):
@@ -235,6 +238,7 @@ class SGLangRollout(BaseRollout):
                 spaces_between_special_tokens=True,
             )
         # users can customize different sampling_params at different run
+        
         with self.update_sampling_params(**kwargs):
             print(f"{self.sampling_params=}")
             output = self.inference_engine.generate(

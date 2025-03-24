@@ -46,13 +46,17 @@ def _split_args_kwargs_data_proto(chunks, *args, **kwargs):
     from verl.protocol import DataProto, DataProtoFuture
     splitted_args = []
     for arg in args:
-        assert isinstance(arg, (DataProto, DataProtoFuture))
-        splitted_args.append(arg.chunk(chunks=chunks))
+        if isinstance(arg, (DataProto, DataProtoFuture)):
+            splitted_args.append(arg.chunk(chunks=chunks))
+        else:
+            splitted_args.append([arg] * chunks)
 
     splitted_kwargs = {}
     for key, val in kwargs.items():
-        assert isinstance(val, (DataProto, DataProtoFuture))
-        splitted_kwargs[key] = val.chunk(chunks=chunks)
+        if isinstance(val, (DataProto, DataProtoFuture)):
+            splitted_kwargs[key] = val.chunk(chunks=chunks)
+        else:
+            splitted_kwargs[key] = [val] * chunks
 
     return splitted_args, splitted_kwargs
 

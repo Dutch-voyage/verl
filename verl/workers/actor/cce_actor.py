@@ -49,6 +49,7 @@ class CCE_DP_PPOActor(BasePPOActor):
         super().__init__(config)
         self.actor_module = actor_module
         from cut_cross_entropy.transformers import cce_patch
+        # if having precison problems, consider using impl="cce_kahan_full_c"
         if isinstance(self.actor_module, FSDP):
             self.actor_module._fsdp_wrapped_module = cce_patch(self.actor_module._fsdp_wrapped_module, reduction="none")
         else:
@@ -153,7 +154,7 @@ class CCE_DP_PPOActor(BasePPOActor):
                 # only pass input_ids and position_ids to enable flash_attn_varlen
                 outputs = self.actor_module(input_ids=input_ids_rmpad,
                                             attention_mask=None,
-                                            labels=input_ids_rmpad_rolled,
+                                            labels=input_ids_rmpad,
                                             position_ids=position_ids_rmpad,
                                             **multi_modal_inputs,
                                             use_cache=False)  # prevent model thinks we are generating
@@ -196,7 +197,7 @@ class CCE_DP_PPOActor(BasePPOActor):
                 input_ids_rolled = torch.roll(input_ids, shifts=-1, dims=1)  # (bsz, seqlen)
                 outputs = self.actor_module(input_ids=input_ids,
                                            attention_mask=attention_mask,
-                                           labels=input_ids_rolled,
+                                           labels=input_ids,
                                            position_ids=position_ids,
                                            **multi_modal_inputs,
                                            use_cache=False)  # prevent model thinks we are generating
