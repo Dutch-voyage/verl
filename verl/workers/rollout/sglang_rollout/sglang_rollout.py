@@ -143,6 +143,7 @@ class SGLangRollout(BaseRollout):
         global_rank = device_mesh_cpu.get_rank()
         tp_size = device_mesh_cpu["tp"].mesh.size()[0]
         src_rank = global_rank // tp_size * tp_size
+        self.rank = src_rank
 
         self.inference_engine = VerlEngine(
             model_path=actor_module,
@@ -152,6 +153,7 @@ class SGLangRollout(BaseRollout):
             base_gpu_id=src_rank,
             gpu_id_step=1,
             enable_memory_saver=True,
+            grammar_backend="llguidance",
             # NOTE(Chenyang): if you want to debug the sglang engine
             # please set the following parameters
             # Otherwise, it will make the engine run too slow
@@ -188,8 +190,8 @@ class SGLangRollout(BaseRollout):
                     old_value = self.sampling_params[key]
                     old_sampling_params_args[key] = old_value
                     self.sampling_params[key] = value
-                else:
-                    raise ValueError(f"Sampling param {key} not found in {self.sampling_params}")
+                # else:
+                #     raise ValueError(f"Sampling param {key} not found in {self.sampling_params}")
         yield
         # roll back to previous sampling params
         # if len(old_sampling_params_args):
@@ -211,10 +213,22 @@ class SGLangRollout(BaseRollout):
         batch_size = idx.size(0)
         idx_list = []
         # parse idx from torch.Tensor to List[List[str]]
+        
+        do_sample = prompts.meta_info.get("do_sample", True)
+        
+        # repeat before generating 
+        if self.config.n > 1 and do_sample:
+            idx = idx.repeat_interleave(self.config.n, dim=0)
+            attention_mask = attention_mask.repeat_interleave(self.config.n, dim=0)
+            position_ids = position_ids.repeat_interleave(self.config.n, dim=0)
+            batch_size = batch_size * self.config.n
+        
+        kwargs["n"] = 1
+        
         for i in range(batch_size):
             idx_list.append(_pre_process_inputs(self.pad_token_id, idx[i]))
 
-        do_sample = prompts.meta_info.get("do_sample", True)
+        
         if not do_sample:
             # kwargs = {
             #     'top_p': 1.0,
@@ -238,15 +252,17 @@ class SGLangRollout(BaseRollout):
                 spaces_between_special_tokens=True,
             )
         # users can customize different sampling_params at different run
-        
+
         with self.update_sampling_params(**kwargs):
             print(f"{self.sampling_params=}")
+            # self.inference_engine._engine.start_profile()
             output = self.inference_engine.generate(
                 prompt=None,  # because we have already convert it to prompt token id
                 sampling_params=self.sampling_params,
                 return_logprob=True,
                 input_ids=idx_list,
             )
+            # self.inference_engine._engine.stop_profile()
 
         out = _post_process_outputs(self.tokenizer, output)
 
@@ -256,11 +272,7 @@ class SGLangRollout(BaseRollout):
         if response.shape[1] < self.config.response_length:
             response = pad_sequence_to_length(response, self.config.response_length, self.pad_token_id)
             log_probs = pad_sequence_to_length(log_probs, self.config.response_length, self.pad_token_id)
-        if self.config.n > 1 and do_sample:
-            idx = idx.repeat_interleave(self.config.n, dim=0)
-            attention_mask = attention_mask.repeat_interleave(self.config.n, dim=0)
-            position_ids = position_ids.repeat_interleave(self.config.n, dim=0)
-            batch_size = batch_size * self.config.n
+        
         seq = torch.cat([idx, response], dim=-1)
 
         response_length = response.size(1)

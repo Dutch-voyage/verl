@@ -153,14 +153,20 @@ class TaskRunner:
         else:
             raise NotImplementedError
         
+        from pydantic import BaseModel, Field
+        from typing import Dict, Literal
+        import json
+        import re
         class KnightKnaveAnswer(BaseModel):
             """Schema for knight/knave puzzle answers."""
             think: Dict[str, str] = Field(
                 description="Reasoning steps for solving the puzzle",
+                pattern=re.compile(r'^.*?(.+)\1$', flags=re.DOTALL), 
                 examples=[{"step1": "First, let's analyze...", "step2": "Next, we can deduce..."}]
             )
             answer: Dict[str, Literal["knight", "knave"]] = Field(
                 description="Mapping of character IDs to their classification as knight or knave",
+                pattern=re.compile(r'^.*?(.+)\1$', flags=re.DOTALL), 
                 examples=[{"A": "knight", "B": "knave", "C": "knight"}]
             )
         
