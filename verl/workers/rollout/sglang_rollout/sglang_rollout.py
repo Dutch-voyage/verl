@@ -153,7 +153,7 @@ class SGLangRollout(BaseRollout):
             base_gpu_id=src_rank,
             gpu_id_step=1,
             enable_memory_saver=True,
-            grammar_backend="llguidance",
+            # grammar_backend="llguidance",
             # NOTE(Chenyang): if you want to debug the sglang engine
             # please set the following parameters
             # Otherwise, it will make the engine run too slow
@@ -174,7 +174,6 @@ class SGLangRollout(BaseRollout):
         for k in config.keys():
             if hasattr(SamplingParams(), str(k)):
                 kwargs[k] = config.get(k)
-        print(f"kwargs: {kwargs}")
         self.sampling_params = kwargs
 
         self.tokenizer = tokenizer

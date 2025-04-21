@@ -150,6 +150,9 @@ class TaskRunner:
         elif reward_manager_name == 'kk':
             from verl.workers.reward_manager import KKRewardManager
             reward_manager_cls = KKRewardManager
+        elif reward_manager_name == 'table':
+            from verl.workers.reward_manager import TableRewardManager
+            reward_manager_cls = TableRewardManager
         else:
             raise NotImplementedError
         
@@ -171,6 +174,7 @@ class TaskRunner:
             )
         
         json_schema = json.dumps(KnightKnaveAnswer.model_json_schema())
+        json_schema = None
 
         compute_score = get_custom_reward_fn(config)
         reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)

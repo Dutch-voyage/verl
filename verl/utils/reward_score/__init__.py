@@ -42,6 +42,9 @@ def _default_compute_score(data_source, solution_str, ground_truth, extra_info=N
         # res = kk.compute_score(solution_str, ground_truth)
         from . import kk_structure
         res = kk_structure.compute_score(solution_str, ground_truth)
+    elif data_source in ['TableQA']:
+        from . import table
+        res = table.compute_score(solution_str, ground_truth)
     else:
         raise NotImplementedError
 

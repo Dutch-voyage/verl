@@ -163,14 +163,18 @@ class RLHFDataset(Dataset):
 
         # if begin with <think> then set continual_final_message to True
         # else set to False (by default)
-        prompt_with_chat_template = self.tokenizer.apply_chat_template(chat, add_generation_prompt=True, tokenize=False)
+        # prompt_with_chat_template = self.tokenizer.apply_chat_template(chat, add_generation_prompt=True, tokenize=False)
+        prompt_with_chat_template = self.tokenizer.apply_chat_template(chat, continue_final_message=True, tokenize=False)
         # prompt_with_chat_template = chat[0]['content']
-
+        
         # remove last <|im_end|>\n for Qwen 
         # if prompt_with_chat_template.endswith('<|im_end|>\n'):
         #     prompt_with_chat_template = prompt_with_chat_template.removesuffix('<|im_end|>\n')
         # elif prompt_with_chat_template.endswith('<｜end▁of▁sentence｜>'):
         #     prompt_with_chat_template = prompt_with_chat_template.removesuffix('<｜end▁of▁sentence｜>')
+        
+        # print(prompt_with_chat_template)
+        # assert False
 
         is_multi_modal = self.image_key in row_dict
         if is_multi_modal:  # expand image token

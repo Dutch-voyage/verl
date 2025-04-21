@@ -15,3 +15,4 @@
 from .naive import NaiveRewardManager
 from .prime import PrimeRewardManager
 from .kk import KKRewardManager
+from .table import TableRewardManager

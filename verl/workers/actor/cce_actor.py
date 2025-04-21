@@ -270,7 +270,10 @@ class CCE_DP_PPOActor(BasePPOActor):
                     old_log_prob = data['old_log_probs']
                     advantages = data['advantages']
 
-                    clip_ratio = self.config.clip_ratio
+                    # clip_ratio = self.config.clip_ratio
+                    clip_low_ratio = self.config.clip_low_ratio
+                    clip_high_ratio = self.config.clip_high_ratio
+                    
                     entropy_coeff = self.config.entropy_coeff
                     # all return: (bsz, response_length)
                     entropy, log_prob = self._forward_micro_batch(micro_batch=data, temperature=temperature)
@@ -278,7 +281,7 @@ class CCE_DP_PPOActor(BasePPOActor):
                                                                                   log_prob=log_prob,
                                                                                   advantages=advantages,
                                                                                   eos_mask=response_mask,
-                                                                                  cliprange=clip_ratio)
+                                                                                  cliprange=[clip_low_ratio, clip_high_ratio])
                     # compute entropy loss from entropy
                     entropy_loss = verl_F.masked_mean(entropy, response_mask)
 
